@@ -88,6 +88,7 @@ var m = Math,
 			zoomMax: 4,
 			doubleTapZoom: 2,
 			wheelAction: 'scroll',
+			mouseGestures: true,
 
 			// Snap
 			snap: false,
@@ -171,12 +172,19 @@ iScroll.prototype = {
 		switch(e.type) {
 			case START_EV:
 				if (!hasTouch && e.button !== 0) return;
+				if (!hasTouch && !that.options.mouseGestures) return;
 				that._start(e);
 				break;
 			case MOVE_EV: that._move(e); break;
+				if (!hasTouch && !that.options.mouseGestures) return;
+				break;
 			case END_EV:
 			case CANCEL_EV: that._end(e); break;
+				if (!hasTouch && !that.options.mouseGestures) return;
+				break;
 			case RESIZE_EV: that._resize(); break;
+				if (!hasTouch && !that.options.mouseGestures) return;
+				break;
 			case WHEEL_EV: that._wheel(e); break;
 			case 'mouseout': that._mouseout(e); break;
 			case 'webkitTransitionEnd': that._transitionEnd(e); break;
@@ -590,12 +598,27 @@ iScroll.prototype = {
 	},
 	
 	_resetPos: function (time) {
+		var scrollNegateDelay = 0;
+		var webkitVersion = navigator.userAgent.match(/AppleWebKit\/(\d+)/);
+		if (webkitVersion[1] <= 534) {
+			if (/ipad/i.test(navigator.userAgent)) {
+				scrollNegateDelay = 200;
+			} else {
+				scrollNegateDelay= 50;
+			}
+		}
 		var that = this,
 			resetX = that.x >= 0 ? 0 : that.x < that.maxScrollX ? that.maxScrollX : that.x,
 			resetY = that.y >= that.minScrollY || that.maxScrollY > 0 ? that.minScrollY : that.y < that.maxScrollY ? that.maxScrollY : that.y;
 
 		if (resetX == that.x && resetY == that.y) {
 			if (that.moved) {
+				if(webkitVersion[1] <= 534){
+					setTimeout(function() {	 
+						that.wrapper.scrollLeft = 0;
+						that.wrapper.scrollTop = 0;
+					},scrollNegateDelay);
+				}
 				that.moved = false;
 				if (that.options.onScrollEnd) that.options.onScrollEnd.call(that);		// Execute custom code on scroll end
 			}
